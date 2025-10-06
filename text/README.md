@@ -62,8 +62,6 @@ A value being 0 means that that the text will be centered on that axis, and the 
 
 ## Example Script
 
-&nbsp;
-
 ```js
 body = "https://raw.githubusercontent.com/antiviiris/OSL-Packages/main/text/doc-assets/catgirls.txt".httpGet()
 
