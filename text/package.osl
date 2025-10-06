@@ -1,0 +1,217 @@
+_props = [
+  "color",
+  "fontSize",
+  "lineSpacing",
+  "textFlowX",
+  "textFlowY",
+  "moveCursor",
+  "align",
+  "overflow",
+  "textWrap",
+  "debug"
+]
+_style = {
+  "color": "#fff",
+  "fontSize": 10,
+  "lineSpacing": 1,
+  "textFlowX": 1,
+  "textFlowY": -1,
+  "moveCursor": true,
+  "align": "left",
+  "overflow": "none",
+  "textWrap": true,
+  "debug": false,
+}
+boolean _style.moveCursor = true
+boolean _style.textWrap = true
+boolean _style.debug = false
+number  _style.fontSize = 10
+number  _style.lineSpacing = 1
+_args = {
+  "align": ["left", "center", "right"],
+  "overflow": ["none", "trim", "hidden"],
+  "textFlowX": [-1, 0, 1],
+  "textFlowY": [-1, 0, 1]
+}
+_argsKeys = [
+  "align",
+  "overflow",
+  "textFlowX",
+  "textFlowY"
+]
+
+_defaults = _style
+
+def setProperty(string key, value) (
+  if self._argsKeys.contains(key) (
+    if self._args[key].contains(value).not() (
+      throw error ["Cannot set value of property ", key, " to \"", value, "\"."].join("")
+    )
+  )
+  if self._props.contains(key).not() (
+    throw error ["Invalid property \"", key, "\"."].join("")
+  )
+  self._style[key] = value
+)
+
+def getProperty(string key) (
+  if self._props.contains(key).not() (
+    throw error ["Invalid property \"", key, "\"."].join("")
+  )
+  return self._style[key]
+)
+
+def applyStyle(object legend) (
+  local array keys = legend.getKeys()
+  for n keys.len (
+    setProperty(keys[n], legend[keys[n]]) 
+  )
+)
+
+def resetStyle() (
+  self._style = self._defaults
+)
+
+def write(value, w, h) (
+  local style @= self._style
+  local string body  = value.toStr()
+  local number homeX = x_position
+  local number homeY = y_position
+
+  if w.isType("null") (
+    // Automaticaly determine width and height of text
+    local boolean strict = false
+    local array  split = body.split("\n")
+    local auto = _textSize(split)
+    local number width  = auto[1]
+    local number height = auto[2]
+  ) else (
+    local boolean strict = true
+    local array  split  = _parseBody(body, w, h)
+    local number width  = w
+    local number height = h
+  )
+
+  if style.debug (
+    change_x width  / 2 * style.textFlowX
+    change_y height / 2 * style.textFlowY
+    c #0ff
+    pen "opacity" 10
+    square width height
+    goto homeX homeY
+  )
+
+  switch style.align (
+    case "left"
+      local number chx = -1
+      break
+    case "center"
+      local number chx = 0
+      break
+    case "right"
+      local number chx = 1
+      break
+  )
+  
+  if style.overflow == "hidden" (
+    local number tx = width  / 2 * style.textFlowX + x_position
+    local number ty = height / 2 * style.textFlowY + y_position
+    local c = [
+      tx - (width  / 2),
+      ty + (height / 2),
+      tx + (width  / 2),
+      ty - (height / 2)
+    ]
+  )
+
+  change_x width / 2 * (style.textFlowX + chx)
+  change_y height / 2 * (style.textFlowY + 1)
+  change_y style.fontSize * -1.15
+  configtext "lineheight" style.lineSpacing
+  c style.color
+  
+  if style.overflow == "hidden" (
+    frame c[1] c[2] c[3] c[4] (
+      if 1 < split.len (
+        local number anchor = x_position
+        for n split.len (
+          _draw(split[n])
+          text "\n" style.fontSize
+          set_x anchor
+        )
+      ) else (
+        _draw(body)
+      )
+    )
+  ) else (
+    if 1 < split.len (
+      local number anchor = x_position
+      for n split.len (
+        _draw(split[n])
+        text "\n" style.fontSize
+        set_x anchor
+      )
+    ) else (
+      _draw(body)
+    )
+  )
+  
+  goto homeX homeY
+  if style.moveCursor (
+    change_x width  * style.textFlowX
+    change_y height * style.textFlowY
+  )
+)
+
+def _textSize(split) (
+  local style @= self._style
+  local number charW = 0
+  for i split.len (
+    if charW < split[i].len (
+      charW = split[i].len
+    )
+  )
+  local number width  = charW * style.fontSize
+  local number height = style.fontSize * (style.lineSpacing * 2.3) * split.len
+  return [width, height]
+)
+
+def _parseBody(body, w, h) (
+  local style @= self._style
+  local number charLen = floor(w / style.fontSize)
+  local wrapped = body
+  if style.textWrap (
+    wrapped = wrapped.wrapText(charLen)
+    wrapped = wrapped.split("\n")
+    if style.overflow == "trim" (
+      local number charVer = floor(h / (style.fontSize * (style.lineSpacing * 2.3)))
+      if charVer < wrapped.len (
+        wrapped.left(charVer)
+        wrapped[charVer] = wrapped[charVer].left(charLen - 3).concat("...")
+      )
+    )
+  ) else (
+    wrapped = wrapped.split("\n")
+    if style.overflow == "trim" (
+      wrapped = wrapped.map((val) -> (
+        return val.trimText(charLen - 2)
+      ))
+    )
+  )
+  return wrapped
+)
+
+def _draw(line) (
+  local style @= self._style
+  switch style.align (
+    case "center"
+      centext line style.fontSize
+      break
+    case "right"
+      rigtext line style.fontSize
+      break
+    case "left"
+      text line style.fontSize
+      break
+  )
+)
