@@ -94,3 +94,5 @@ text.write("Written Aug 5th, 2025", 500, 50)
 
 import "win-buttons"
 ```
+
+![The output for the script above](https://raw.githubusercontent.com/antiviiris/OSL-Packages/main/text/doc-assets/results.png)
